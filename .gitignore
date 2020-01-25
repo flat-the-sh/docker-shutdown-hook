@@ -1,0 +1,13 @@
+.gradle
+build/
+log/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+
+### VS Code ###
+.vscode/
