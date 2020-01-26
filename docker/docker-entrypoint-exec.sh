@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
 
-exec java -jar shutdown-hook.jar
+exec /jre/bin/java -jar shutdown-hook.jar
