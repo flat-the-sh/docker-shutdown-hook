@@ -1,26 +1,44 @@
 #!/bin/sh
 set -e
 
-./gradlew clean assemble
+
+default_name=shutdown-hook
+exec_name=shutdown-hook-exec
 
 
-docker build --build-arg DOCKER_ENTRYPOINT=docker-entrypoint.sh -t shutdown-hook .
+run_container() { 
+  entrypoint=$1
+  name=$2
 
-docker run --name shutdown-hook -d -v /"$(pwd)"/log/:/log/ shutdown-hook
-docker top shutdown-hook
-sleep 5s
-docker stop shutdown-hook
-docker rm -f shutdown-hook
+  docker build --quiet \
+	--build-arg DOCKER_ENTRYPOINT=$entrypoint \
+	-t $name \
+	.
 
-tail -2 ./log/context.log
+  docker run -d \
+	--name $name \
+	-v /"$(pwd)"/log/:/log/ \
+	$name
+
+  docker top $name
+  sleep 5s
+  docker stop $name
+
+  tail -2 ./log/context.log
+}
 
 
-docker build --build-arg DOCKER_ENTRYPOINT=docker-entrypoint-exec.sh -t shutdown-hook-exec .
+cleanup() {
+  docker rm -f -v $default_name $exec_name
+  docker rmi -f $default_name $exec_name
+}
+trap cleanup EXIT
 
-docker run --name shutdown-hook-exec -d -v /"$(pwd)"/log/:/log/ shutdown-hook-exec
-docker top shutdown-hook-exec
-sleep 5s
-docker stop shutdown-hook-exec
-docker rm -f shutdown-hook-exec
 
-tail -2 ./log/context.log
+./gradlew --quiet clean assemble
+
+
+run_container docker-entrypoint.sh $default_name
+
+run_container docker-entrypoint-exec.sh $exec_name
+
